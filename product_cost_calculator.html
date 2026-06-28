@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product cost calculator · material mix</title>
+
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #E8EAF6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 80px;
+    }
+
+    /* ── Top nav bar ── */
+    .top-bar {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 10px;
+      background: transparent;
+    }
+    .top-bar .back-btn {
+      background: none; border: none; cursor: pointer;
+      color: #4B3DC8; font-size: 22px; line-height: 1;
+    }
+    .top-bar h1 {
+      font-size: 17px; font-weight: 700; color: #4B3DC8; letter-spacing: 0.2px;
+    }
+    .top-bar .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: #b0b0c0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    /* ── Main card wrapper ── */
+    .card {
+      width: 100%;
+      max-width: 480px;
+      padding: 0 14px;
+    }
+    .calc-wrap { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Product name card ── */
+    .product-name-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 12px rgba(75,61,200,0.07);
+    }
+    .product-name-card .field-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+      color: #8B8FA8; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .product-name-card input {
+      width: 100%; border: 1.5px solid #E0E0F0; border-radius: 10px;
+      padding: 11px 14px; font-size: 14px; color: #222;
+      outline: none; background: #fff;
+      transition: border-color .2s;
+    }
+    .product-name-card input:focus { border-color: #4B3DC8; }
+    .product-name-card input::placeholder { color: #B0B3C8; }
+
+    /* ── Materials card ── */
+    .materials-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 16px 18px 18px;
+      box-shadow: 0 2px 12px rgba(75,61,200,0.07);
+    }
+
+    /* ── Column headers ── */
+    .grid-header {
+      display: grid;
+      grid-template-columns: 1fr 160px 90px 32px;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .col-header {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
+      color: #8B8FA8; text-transform: uppercase;
+    }
+
+    /* ── Material rows ── */
+    .material-row {
+      display: grid;
+      grid-template-columns: 1fr 160px 90px 32px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .material-row input[type="text"] {
+      border: 1.5px solid #E0E0F0; border-radius: 10px;
+      padding: 10px 12px; font-size: 13.5px; color: #222;
+      outline: none; background: #fff; width: 100%;
+      transition: border-color .2s;
+    }
+    .material-row input[type="text"]:focus { border-color: #4B3DC8; }
+
+    /* Stepper for price */
+    .stepper-wrap {
+      display: flex; align-items: center; gap: 0;
+      border: 1.5px solid #E0E0F0; border-radius: 10px; overflow: hidden;
+      background: #fff;
+    }
+    .stepper-wrap .step-btn {
+      background: none; border: none; cursor: pointer;
+      width: 32px; height: 40px;
+      font-size: 18px; color: #4B3DC8; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .stepper-wrap .step-btn:hover { background: #F0EEFF; }
+    .stepper-wrap input[type="number"] {
+      border: none; outline: none; text-align: center;
+      font-size: 13.5px; color: #222; width: 100%;
+      padding: 0; background: transparent; -moz-appearance: textfield;
+    }
+    .stepper-wrap input[type="number"]::-webkit-inner-spin-button,
+    .stepper-wrap input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* Proportion input */
+    .material-row input[type="number"].pct-input {
+      border: 1.5px solid #E0E0F0; border-radius: 10px;
+      padding: 10px 10px; font-size: 13.5px; color: #222;
+      text-align: center; outline: none; background: #fff; width: 100%;
+      -moz-appearance: textfield;
+      transition: border-color .2s;
+    }
+    .material-row input[type="number"].pct-input:focus { border-color: #4B3DC8; }
+    .material-row input[type="number"].pct-input::-webkit-inner-spin-button,
+    .material-row input[type="number"].pct-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* Remove btn */
+    .remove-btn {
+      background: none; border: none; cursor: pointer;
+      color: #C0C4D8; font-size: 17px;
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px;
+      transition: color .15s, background .15s;
+    }
+    .remove-btn:hover { color: #e05; background: #FFF0F3; }
+
+    /* ── Total composition bar ── */
+    .composition-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 6px; margin-bottom: 12px;
+    }
+    .composition-row .add-btn {
+      background: none; border: none; cursor: pointer;
+      color: #4B3DC8; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;
+      padding: 0;
+    }
+    .composition-right {
+      text-align: right;
+    }
+    .composition-right .comp-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 1px;
+      color: #8B8FA8; text-transform: uppercase; margin-bottom: 2px;
+    }
+    .composition-right .comp-value {
+      font-size: 20px; font-weight: 800; color: #4B3DC8; line-height: 1;
+    }
+    .composition-right .comp-value span.of-100 {
+      font-size: 14px; font-weight: 500; color: #C0C4D8;
+    }
+    .progress-track {
+      width: 110px; height: 5px; background: #E8EAF6; border-radius: 99px;
+      margin-top: 5px; margin-left: auto;
+    }
+    .progress-fill {
+      height: 100%; background: #4B3DC8; border-radius: 99px;
+      transition: width .3s;
+    }
+
+    /* ── Warning banner ── */
+    .warning {
+      display: none;
+      align-items: center; gap: 10px;
+      background: #FFF8EC; border: 1.5px solid #F5A623;
+      border-radius: 12px; padding: 12px 16px;
+      color: #C47B00; font-size: 12.5px; font-weight: 600;
+      letter-spacing: 0.4px; text-transform: uppercase;
+    }
+    .warning svg, .warning i { color: #F5A623; font-size: 16px; }
+
+    /* ── Calculate button ── */
+    .btn-primary {
+      width: 100%;
+      background: #3A2EA0;
+      color: #fff; border: none; border-radius: 16px;
+      padding: 17px; font-size: 16px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 8px; letter-spacing: 0.2px;
+      box-shadow: 0 4px 18px rgba(58,46,160,0.25);
+      transition: background .2s, transform .1s, box-shadow .2s;
+    }
+    .btn-primary:hover { background: #4B3DC8; box-shadow: 0 6px 24px rgba(58,46,160,0.3); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-hint {
+      text-align: center; font-size: 12px; color: #A0A4B8;
+      padding: 0 16px; line-height: 1.5;
+    }
+
+    /* ── Reset / outline button ── */
+    .btn-outline {
+      background: #fff; color: #4B3DC8;
+      border: 1.5px solid #D0CAFF; border-radius: 12px;
+      padding: 10px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: background .2s;
+    }
+    .btn-outline:hover { background: #F0EEFF; }
+
+    .action-btn-group {
+      display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+      margin-top: 4px;
+    }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1.5px solid #EEEEF8; margin: 4px 0; }
+
+    /* ── Metric card ── */
+    .metric-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .metric-card { flex: 1; }
+    .metric-label { font-size: 11px; color: #8B8FA8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+    .metric-value { font-size: 26px; font-weight: 800; color: #4B3DC8; margin-top: 2px; }
+
+    /* ── Breakdown table ── */
+    .breakdown-table-wrap { overflow-x: auto; border-radius: 12px; border: 1.5px solid #EEEEF8; }
+    .breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .breakdown-table th {
+      background: #F5F4FF; color: #8B8FA8; font-size: 10px;
+      letter-spacing: 0.8px; text-transform: uppercase; font-weight: 700;
+      padding: 10px 12px; text-align: left; border-bottom: 1.5px solid #EEEEF8;
+    }
+    .breakdown-table td { padding: 10px 12px; border-bottom: 1px solid #F0F0F8; color: #333; }
+    .breakdown-table tr:last-child td { border-bottom: none; }
+    .total-row td { font-weight: 700; background: #F8F7FF; }
+    .pct-bar { background: #E8EAF6; border-radius: 99px; height: 6px; }
+    .pct-fill { background: #4B3DC8; border-radius: 99px; height: 100%; transition: width .3s; }
+
+    /* ── Bottom nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1.5px solid #EEEEF8;
+      display: flex; align-items: center; justify-content: space-around;
+      padding: 10px 0 16px;
+      box-shadow: 0 -2px 16px rgba(75,61,200,0.06);
+      z-index: 100;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600; color: #A0A4B8;
+      text-decoration: none; cursor: pointer;
+    }
+    .nav-item svg { width: 22px; height: 22px; }
+    .nav-item.active {
+      color: #fff;
+    }
+    .nav-item.active .nav-pill {
+      background: #5DDFC3; border-radius: 24px; padding: 10px 22px 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      color: #fff;
+    }
+    .nav-pill { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+    /* screen-reader only */
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      color: #8B8FA8; text-transform: uppercase; margin-bottom: 6px;
+      display: flex; align-items: center;
+    }
+
+    /* ── Save & New button ── */
+    .btn-save-new {
+      width: 100%;
+      background: #fff;
+      color: #4B3DC8; border: 2px solid #4B3DC8; border-radius: 16px;
+      padding: 15px; font-size: 15px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 8px; letter-spacing: 0.2px;
+      transition: background .2s, transform .1s;
+    }
+    .btn-save-new:hover { background: #F0EEFF; }
+    .btn-save-new:active { transform: scale(0.98); }
+
+    /* ── History section ── */
+    .history-section { width: 100%; max-width: 480px; padding: 0 14px 20px; }
+    .history-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; margin-top: 4px;
+    }
+    .history-header .history-title {
+      font-size: 13px; font-weight: 700; color: #4B3DC8; letter-spacing: 0.2px;
+    }
+    .history-header .history-count {
+      font-size: 11px; font-weight: 600; color: #A0A4B8;
+      background: #EEEEF8; border-radius: 99px; padding: 3px 10px;
+    }
+    .history-empty {
+      text-align: center; padding: 28px 20px;
+      color: #B0B3C8; font-size: 13px; line-height: 1.6;
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(75,61,200,0.05);
+    }
+    .history-empty .empty-icon { font-size: 32px; margin-bottom: 8px; }
+    .history-card {
+      background: #fff; border-radius: 16px;
+      padding: 16px 18px; margin-bottom: 10px;
+      box-shadow: 0 2px 12px rgba(75,61,200,0.07);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      border: 1.5px solid transparent;
+      transition: box-shadow .2s, transform .15s;
+    }
+    .history-card:hover { box-shadow: 0 4px 20px rgba(75,61,200,0.13); transform: translateY(-1px); border-color: #D0CAFF; }
+    .history-card-left { flex: 1; min-width: 0; }
+    .history-card-name {
+      font-size: 14px; font-weight: 700; color: #222;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px;
+    }
+    .history-card-meta {
+      font-size: 11px; color: #A0A4B8; display: flex; align-items: center; gap: 8px;
+    }
+    .history-card-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: #C8C8D8; }
+    .history-card-cost {
+      font-size: 20px; font-weight: 800; color: #4B3DC8; white-space: nowrap; flex-shrink: 0;
+    }
+    .history-card-cost .cost-unit {
+      font-size: 11px; font-weight: 600; color: #A0A4B8; display: block; text-align: right; margin-top: 1px;
+    }
+    .history-card-delete {
+      background: none; border: none; cursor: pointer;
+      color: #C0C4D8; font-size: 15px; padding: 4px 6px; border-radius: 8px;
+      transition: color .15s, background .15s; flex-shrink: 0;
+    }
+    .history-card-delete:hover { color: #e05; background: #FFF0F3; }
+    .materials-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .pill {
+      font-size: 10px; font-weight: 600; color: #6B5FD8;
+      background: #F0EEFF; border-radius: 99px; padding: 2px 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top nav -->
+  <div class="top-bar">
+    <button class="back-btn" aria-label="Back">&#8249;</button>
+    <h1>New Calculation</h1>
+    <div class="avatar">👤</div>
+  </div>
+
+<div class="card">
+  <div class="calc-wrap">
+    <h2 class="sr-only">Product cost calculator — raw materials to total cost</h2>
+
+    <!-- Product name -->
+    <div class="product-name-card">
+      <p class="field-label">Product Name</p>
+      <input type="text" placeholder="e.g. Industrial Polymer Composite v4">
+    </div>
+
+    <!-- Materials card -->
+    <div class="materials-card">
+      <div class="grid-header">
+        <span class="col-header">Material Name</span>
+        <span class="col-header">Price / kg (₹)</span>
+        <span class="col-header">Proportion (%)</span>
+        <span></span>
+      </div>
+      <div id="materials-list"></div>
+
+      <!-- Composition bar + add button -->
+      <div class="composition-row">
+        <button class="add-btn" onclick="addRow()">+ Add Material</button>
+        <div class="composition-right">
+          <p class="comp-label">Total Composition</p>
+          <p class="comp-value" id="comp-display">0% <span class="of-100">/ 100%</span></p>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pct-warning" class="warning">&#9888; Adjustment needed to reach 100%</div>
+
+    <button class="btn-primary" id="calculate-btn">Calculate Total &#9783;</button>
+    <p class="btn-hint">Detailed cost breakdown will include overheads, logistics, and material waste factors.</p>
+
+    <hr class="divider" style="display:none" id="divider-el">
+
+    <div class="metric-row" id="metric-row-el" style="display:none">
+      <div class="metric-card">
+        <p class="metric-label">Cost per kg of product</p>
+        <p class="metric-value" id="raw-cost">₹0.00</p>
+      </div>
+      <div class="action-btn-group">
+        <button class="btn-outline" onclick="resetToExample()">&#8635; Reset</button>
+      </div>
+    </div>
+
+
+    <!-- Save & New -->
+    <div id="save-new-section" style="display:none; margin-top:4px;">
+      <button class="btn-save-new" id="save-new-btn">&#43; Save &amp; Calculate New Product</button>
+    </div>
+
+    <!-- breakdown -->
+    <div id="breakdown-section" style="display:none;">
+      <p class="section-label" style="margin-bottom:6px;">&#9685; Breakdown</p>
+      <div class="breakdown-table-wrap">
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Price / kg</th>
+              <th>% used</th>
+              <th>Cost contrib.</th>
+              <th style="max-width:80px;">Share</th>
+            </tr>
+          </thead>
+          <tbody id="breakdown-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- History -->
+<div class="history-section" id="history-section">
+  <div class="history-header">
+    <span class="history-title">&#128197; Calculation History</span>
+    <span class="history-count" id="history-count">0 products</span>
+  </div>
+  <div id="history-list">
+    <div class="history-empty">
+      <div class="empty-icon">&#128203;</div>
+      No calculations yet.<br>Fill in the form and hit <strong>Calculate Total</strong> to get started.
+    </div>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <a class="nav-item" href="#">
+    <div class="nav-pill">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Dashboard
+    </div>
+  </a>
+  <a class="nav-item active" href="#">
+    <div class="nav-pill">
+      <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      New Project
+    </div>
+  </a>
+  <a class="nav-item" href="#">
+    <div class="nav-pill">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>
+      Settings
+    </div>
+  </a>
+</nav>
+
+<script>
+  let rowId = 0;
+  let history = [];
+
+  // ----- helpers -----
+  function getRows() {
+    return Array.from(document.querySelectorAll('.material-row')).map(row => {
+      const inputs = row.querySelectorAll('input');
+      return {
+        name: inputs[0].value.trim() || 'Unnamed',
+        price: parseFloat(inputs[1].value) || 0,
+        pct: parseFloat(inputs[2].value) || 0
+      };
+    });
+  }
+
+  function getProductName() {
+    return document.querySelector('.product-name-card input').value.trim() || 'Unnamed Product';
+  }
+
+  // ----- helpers -----
+  function getRows() {
+    return Array.from(document.querySelectorAll('.material-row')).map(row => {
+      const inputs = row.querySelectorAll('input');
+      return {
+        name: inputs[0].value.trim() || 'Unnamed',
+        price: parseFloat(inputs[1].value) || 0,
+        pct: parseFloat(inputs[2].value) || 0
+      };
+    });
+  }
+
+  // ----- core calculation (also used by button) -----
+  function calculate() {
+    const rows = getRows();
+    const totalPct = rows.reduce((s, r) => s + r.pct, 0);
+
+    updateComposition();
+
+    // raw cost
+    const rawCost = rows.reduce((s, r) => s + (r.price * (r.pct / 100)), 0);
+    document.getElementById('raw-cost').textContent = '₹' + rawCost.toFixed(2);
+
+    // show metric row
+    const metricRow = document.getElementById('metric-row-el');
+    const dividerEl = document.getElementById('divider-el');
+    if (rows.length > 0) {
+      metricRow.style.display = 'flex';
+      dividerEl.style.display = 'block';
+    }
+
+    // breakdown table
+    const section = document.getElementById('breakdown-section');
+    const body = document.getElementById('breakdown-body');
+
+    if (rows.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    body.innerHTML = '';
+
+    // max pct for bar
+    const maxPct = rows.length ? Math.max(...rows.map(r => r.pct), 1) : 1;
+
+    rows.forEach(r => {
+      const cost = r.price * (r.pct / 100);
+      const tr = document.createElement('tr');
+      const pctFill = Math.min((r.pct / maxPct) * 100, 100);
+      tr.innerHTML = `
+        <td>${r.name}</td>
+        <td>₹${r.price.toFixed(2)}</td>
+        <td>${r.pct.toFixed(1)}%</td>
+        <td>₹${cost.toFixed(2)}</td>
+        <td style="min-width:70px;">
+          <div class="pct-bar">
+            <div class="pct-fill" style="width:${pctFill}%;"></div>
+          </div>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+
+    // total row
+    const totalRow = document.createElement('tr');
+    totalRow.className = 'total-row';
+    totalRow.innerHTML = `
+      <td><strong>Total</strong></td>
+      <td></td>
+      <td><strong>${totalPct.toFixed(1)}%</strong></td>
+      <td><strong>₹${rawCost.toFixed(2)}</strong></td>
+      <td></td>
+    `;
+    body.appendChild(totalRow);
+
+    // Show Save & New button
+    document.getElementById('save-new-section').style.display = 'block';
+  }
+
+  // ----- add / remove rows -----
+  function addRow(name = '', price = '', pct = '') {
+    const id = rowId++;
+    const list = document.getElementById('materials-list');
+    const div = document.createElement('div');
+    div.className = 'material-row';
+    div.id = 'row-' + id;
+    div.innerHTML = `
+      <input type="text" placeholder="e.g. Cotton" value="${name}" oninput="updateComposition()">
+      <div class="stepper-wrap">
+        <button class="step-btn" onclick="stepPrice(${id}, -0.5)" type="button">−</button>
+        <input type="number" min="0" step="0.5" placeholder="0.00" value="${price}" id="price-${id}" oninput="updateComposition()">
+        <button class="step-btn" onclick="stepPrice(${id}, 0.5)" type="button">+</button>
+      </div>
+      <input type="number" class="pct-input" min="0" max="100" step="0.1" placeholder="0" value="${pct}" oninput="updateComposition()">
+      <button class="remove-btn" onclick="removeRow(${id})" aria-label="Remove row" type="button">✕</button>
+    `;
+    list.appendChild(div);
+    updateComposition();
+  }
+
+  function stepPrice(id, delta) {
+    const input = document.getElementById('price-' + id);
+    if (!input) return;
+    const val = parseFloat(input.value) || 0;
+    input.value = Math.max(0, val + delta).toFixed(2);
+    updateComposition();
+  }
+
+  function updateComposition() {
+    const rows = getRows();
+    const totalPct = rows.reduce((s, r) => s + r.pct, 0);
+    const pct = Math.min(totalPct, 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    const display = document.getElementById('comp-display');
+    display.innerHTML = `${totalPct.toFixed(0)}% <span class="of-100">/ 100%</span>`;
+    // warning if not at 100 and there are rows
+    const warningEl = document.getElementById('pct-warning');
+    if (rows.length > 0 && Math.abs(totalPct - 100) > 0.5) {
+      warningEl.style.display = 'flex';
+    } else {
+      warningEl.style.display = 'none';
+    }
+  }
+
+  function removeRow(id) {
+    const el = document.getElementById('row-' + id);
+    if (el) { el.remove(); updateComposition(); }
+  }
+
+  // ----- attach button listener -----
+  document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('calculate-btn');
+    btn.addEventListener('click', function() {
+      calculate();
+      this.style.transform = 'scale(0.97)';
+      setTimeout(() => { this.style.transform = ''; }, 120);
+    });
+  });
+
+  // reset to example (adds two default rows)
+  function resetToExample() {
+    const list = document.getElementById('materials-list');
+    list.innerHTML = '';
+    rowId = 0;
+    addRow('Base Resin', 4.50, 60);
+    addRow('Catalyst', 45.00, 25);
+    document.getElementById('breakdown-section').style.display = 'none';
+    document.getElementById('metric-row-el').style.display = 'none';
+    document.getElementById('divider-el').style.display = 'none';
+    document.getElementById('save-new-section').style.display = 'none';
+    updateComposition();
+  }
+
+  // ----- history -----
+  function saveAndNew() {
+    const rows = getRows();
+    if (rows.length === 0) return;
+    const rawCost = rows.reduce((s, r) => s + (r.price * (r.pct / 100)), 0);
+    const totalPct = rows.reduce((s, r) => s + r.pct, 0);
+    const entry = {
+      id: Date.now(),
+      name: getProductName(),
+      cost: rawCost,
+      totalPct: totalPct,
+      materials: rows,
+      time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      date: new Date().toLocaleDateString([], {day:'2-digit', month:'short'})
+    };
+    history.unshift(entry);
+    renderHistory();
+    clearForm();
+  }
+
+  function deleteHistory(id) {
+    history = history.filter(e => e.id !== id);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('history-list');
+    const countEl = document.getElementById('history-count');
+    countEl.textContent = history.length + ' product' + (history.length !== 1 ? 's' : '');
+    if (history.length === 0) {
+      list.innerHTML = '<div class="history-empty"><div class="empty-icon">&#128203;</div>No calculations yet.<br>Fill in the form and hit <strong>Calculate Total</strong> to get started.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    history.forEach(entry => {
+      const pills = entry.materials.slice(0, 3).map(m => `<span class="pill">${m.name}</span>`).join('');
+      const extra = entry.materials.length > 3 ? `<span class="pill">+${entry.materials.length - 3} more</span>` : '';
+      const card = document.createElement('div');
+      card.className = 'history-card';
+      card.innerHTML = `
+        <div class="history-card-left">
+          <div class="history-card-name">${entry.name}</div>
+          <div class="history-card-meta">
+            <span>${entry.date} ${entry.time}</span>
+            <span class="dot"></span>
+            <span>${entry.materials.length} material${entry.materials.length !== 1 ? 's' : ''}</span>
+            <span class="dot"></span>
+            <span>${entry.totalPct.toFixed(0)}% comp.</span>
+          </div>
+          <div class="materials-pills">${pills}${extra}</div>
+        </div>
+        <div class="history-card-cost">
+          ₹${entry.cost.toFixed(2)}
+          <span class="cost-unit">per kg</span>
+        </div>
+        <button class="history-card-delete" onclick="deleteHistory(${entry.id})" title="Remove">✕</button>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  function clearForm() {
+    document.querySelector('.product-name-card input').value = '';
+    document.getElementById('materials-list').innerHTML = '';
+    rowId = 0;
+    document.getElementById('breakdown-section').style.display = 'none';
+    document.getElementById('metric-row-el').style.display = 'none';
+    document.getElementById('divider-el').style.display = 'none';
+    document.getElementById('save-new-section').style.display = 'none';
+    document.getElementById('pct-warning').style.display = 'none';
+    document.getElementById('raw-cost').textContent = '₹0.00';
+    document.getElementById('comp-display').innerHTML = '0% <span class=\"of-100\">/ 100%</span>';
+    document.getElementById('progress-fill').style.width = '0%';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ----- attach button listener -----
+  document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('calculate-btn');
+    btn.addEventListener('click', function() {
+      calculate();
+      this.style.transform = 'scale(0.97)';
+      setTimeout(() => { this.style.transform = ''; }, 120);
+    });
+    document.getElementById('save-new-btn').addEventListener('click', saveAndNew);
+  });
+
+  // expose for inline onclick
+  window.addRow = addRow;
+  window.removeRow = removeRow;
+  window.calculate = calculate;
+  window.resetToExample = resetToExample;
+  window.stepPrice = stepPrice;
+  window.updateComposition = updateComposition;
+</script>
+</body>
+</html>

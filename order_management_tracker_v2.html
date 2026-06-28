@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Order Tracker</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal: #00B8A9;
+    --teal-dark: #008F83;
+    --teal-light: #E0F7F5;
+    --navy: #1A3C5E;
+    --gold: #C9860A;
+    --green: #1B7A45;
+    --text-primary: #111827;
+    --text-secondary: #6B7280;
+    --border: #E5E7EB;
+    --bg: #F3F4F6;
+    --card-bg: #FFFFFF;
+    --danger: #DC2626;
+    --danger-light: #FEE2E2;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --bottom-nav-h: 72px;
+    --header-h: 60px;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── App Shell ── */
+  .app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    position: relative;
+  }
+
+  /* ── Header ── */
+  .header {
+    height: var(--header-h);
+    background: var(--card-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hamburger-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 4px;
+  }
+
+  .hamburger-btn span {
+    display: block;
+    width: 22px;
+    height: 2.5px;
+    background: var(--navy);
+    border-radius: 2px;
+  }
+
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: -0.3px;
+  }
+
+  .fab {
+    width: 42px;
+    height: 42px;
+    background: var(--teal);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 300;
+    box-shadow: 0 4px 12px rgba(0,184,169,0.35);
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .fab:hover { background: var(--teal-dark); }
+  .fab:active { transform: scale(0.95); }
+
+  /* ── Scrollable Content ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px calc(var(--bottom-nav-h) + 16px);
+  }
+
+  /* ── Stat Cards ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .stat-value.total  { color: var(--navy); }
+  .stat-value.active { color: var(--gold); }
+  .stat-value.done   { color: var(--green); }
+
+  /* ── Section Header ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .tracking-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--teal-dark);
+    text-transform: uppercase;
+    background: var(--teal-light);
+    padding: 4px 10px;
+    border-radius: 99px;
+  }
+
+  /* ── Order Cards ── */
+  .order-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+
+  .order-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+
+  .order-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .order-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge.active {
+    background: #E0F7F5;
+    color: var(--teal-dark);
+  }
+
+  .badge.done {
+    background: #DCFCE7;
+    color: var(--green);
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+
+  .progress-info strong { color: var(--text-primary); }
+
+  .progress-track {
+    height: 7px;
+    background: var(--bg);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .order-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 13px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .btn:hover { background: var(--bg); }
+
+  .btn.primary {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+    box-shadow: 0 2px 6px rgba(0,184,169,0.25);
+  }
+
+  .btn.primary:hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+
+  .btn.danger {
+    color: var(--danger);
+    border-color: #FECACA;
+  }
+
+  .btn.danger:hover { background: var(--danger-light); }
+
+  /* ── Empty State ── */
+  .empty {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--text-secondary);
+  }
+
+  .empty-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    color: var(--border);
+  }
+
+  .empty p { font-size: 14px; line-height: 1.6; }
+
+  /* ── Bottom Navigation ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    height: var(--bottom-nav-h);
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    z-index: 50;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    border-radius: var(--radius-md);
+    transition: color 0.15s;
+  }
+
+  .nav-item i { font-size: 20px; }
+
+  .nav-item.active {
+    color: var(--text-primary);
+    background: var(--teal-light);
+  }
+
+  .nav-item.active i { color: var(--teal-dark); }
+  .nav-item.active span { color: var(--teal-dark); font-weight: 700; }
+
+  /* ── Timeline View ── */
+  .timeline-empty {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  .tl-row {
+    display: grid;
+    grid-template-columns: 80px 14px 1fr;
+    gap: 0 10px;
+    align-items: stretch;
+  }
+
+  .tl-date { font-size: 12px; color: var(--text-secondary); padding: 4px 0; text-align: right; line-height: 1.4; }
+  .tl-spine { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); flex-shrink: 0; margin-top: 4px; border: 2px solid var(--teal-light); }
+  .tl-line { flex: 1; width: 2px; background: var(--border); margin: 2px 0; }
+  .tl-last .tl-line { display: none; }
+  .tl-content { padding: 2px 0 14px; }
+  .tl-units { font-size: 13px; font-weight: 600; color: var(--teal-dark); }
+  .tl-note { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .tl-running { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ── Insights View ── */
+  .insight-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .insight-card h3 { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .insight-number { font-size: 36px; font-weight: 700; color: var(--navy); }
+  .insight-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ── Modal ── */
+  .modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+
+  .modal {
+    background: var(--card-bg);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 20px 20px 32px;
+    width: 100%;
+    max-width: 430px;
+    max-height: 88vh;
+    overflow-y: auto;
+    animation: slideUp 0.22s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    margin: 0 auto 16px;
+  }
+
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .modal-head h3 { font-size: 17px; font-weight: 700; }
+
+  .close-btn {
+    background: var(--bg);
+    border: none;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 18px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Form elements ── */
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--teal);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .hint { font-size: 12px; color: var(--text-secondary); }
+  .hint.warn { color: var(--danger); font-weight: 600; }
+  .hint.ok   { color: var(--green);  font-weight: 600; }
+
+  .product-input-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 32px;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+
+  .totalbar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 8px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+
+  .log-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .log-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  .products-section { margin-top: 10px; }
+
+  .product-row {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .product-row:last-child { border-bottom: none; }
+
+  .product-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .product-name { font-size: 13px; font-weight: 600; }
+  .product-size { font-size: 13px; font-weight: 600; color: var(--teal-dark); }
+
+  .product-progress-track {
+    height: 5px;
+    background: var(--bg);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .product-progress-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 99px;
+  }
+
+  .product-progress-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+  }
+
+  .collapse-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: inherit;
+    padding: 4px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .collapse-btn:hover { color: var(--text-primary); }
+
+  .size-log-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .size-log-row:last-child { border-bottom: none; }
+
+  .size-tag {
+    background: #EFF6FF;
+    color: #1D4ED8;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .log-product-row {
+    display: grid;
+    grid-template-columns: 1fr 90px;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 0;
+  }
+
+  .log-product-row label { font-size: 13px; font-weight: 500; }
+  .log-product-row .rem { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 1px; }
+  .log-product-row input { width: 100%; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+  }
+
+  /* ── Views ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Add-order section inside content (triggered by FAB) */
+  .add-order-sheet {
+    display: none;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .add-order-sheet.open { display: block; }
+
+  .add-order-sheet h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    color: var(--text-primary);
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" aria-label="Menu" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </button>
+      <h1 class="header-title">Order Tracker</h1>
+    </div>
+    <button class="fab" aria-label="Add order" onclick="openAddOrder()">+</button>
+  </header>
+
+  <!-- Main Content -->
+  <main class="content">
+
+    <!-- Add Order Sheet (inline, shown when FAB clicked) -->
+    <div class="add-order-sheet" id="addOrderSheet">
+      <h3>New Order</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer / order name</label>
+          <input id="f-name" type="text" placeholder="e.g. Ravi Mehta">
+        </div>
+        <div class="form-group">
+          <label>Total units</label>
+          <input id="f-size" type="number" min="1" placeholder="e.g. 50" oninput="updateProductTotalHint()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input id="f-notes" type="text" placeholder="Delivery deadline, special instructions…">
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="font-size:13px;color:var(--text-secondary);font-weight:600">Products &amp; sizes (optional)</label>
+          <button class="btn" style="padding:5px 10px;font-size:12px" onclick="addProductRow()">+ Add product</button>
+        </div>
+        <div id="productRows"></div>
+        <div class="totalbar">
+          <span>Product total</span>
+          <span id="productTotalHint" class="hint">0 / 0 units</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn primary" onclick="addOrder()" style="flex:1">Add order</button>
+        <button class="btn" onclick="closeAddOrder()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ORDERS VIEW -->
+    <div id="view-orders" class="view active">
+      <!-- Stats -->
+      <div class="stats-grid" id="summaryGrid">
+        <div class="stat-card">
+          <div class="stat-label">Total</div>
+          <div class="stat-value total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active</div>
+          <div class="stat-value active">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Done</div>
+          <div class="stat-value done">0</div>
+        </div>
+      </div>
+
+      <!-- Section header -->
+      <div class="section-header">
+        <span class="section-title">Recent Orders</span>
+        <span class="tracking-badge">Tracking Live</span>
+      </div>
+
+      <div id="ordersList"></div>
+    </div>
+
+    <!-- TIMELINE VIEW -->
+    <div id="view-timeline" class="view">
+      <div class="section-header">
+        <span class="section-title">Timeline</span>
+        <span class="tracking-badge">All Orders</span>
+      </div>
+      <div id="timelineContent"></div>
+    </div>
+
+    <!-- INSIGHTS VIEW -->
+    <div id="view-insights" class="view">
+      <div class="section-header">
+        <span class="section-title">Insights</span>
+      </div>
+      <div id="insightsContent"></div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-orders" onclick="switchView('orders')">
+      <i class="fa-regular fa-rectangle-list"></i>
+      <span>Orders</span>
+    </button>
+    <button class="nav-item" id="nav-timeline" onclick="switchView('timeline')">
+      <i class="fa-regular fa-calendar"></i>
+      <span>Timeline</span>
+    </button>
+    <button class="nav-item" id="nav-insights" onclick="switchView('insights')">
+      <i class="fa-solid fa-chart-bar"></i>
+      <span>Insights</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="updateModal" onclick="onModalBgClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3 id="modalTitle">Update</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+let orders = [];
+let editingId = null;
+let currentView = 'orders';
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function today() { return new Date().toISOString().slice(0, 10); }
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(day)} ${months[parseInt(m)-1]}`;
+}
+function save() { try { window.storage && window.storage.set('orders_v5', JSON.stringify(orders)); } catch(e) {} }
+function productSum(products) { return (products||[]).reduce((s,p) => s+(p.size||0), 0); }
+
+async function load() {
+  try {
+    if (window.storage) {
+      const r = await window.storage.get('orders_v5');
+      if (r && r.value) orders = JSON.parse(r.value);
+    }
+  } catch(e) {}
+  orders.forEach(o => { (o.products||[]).forEach(p => { if (typeof p.completed !== 'number') p.completed = 0; }); });
+  render();
+}
+
+// ── Navigation ──
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('nav-' + v).classList.add('active');
+  closeAddOrder();
+  if (v === 'timeline') renderTimeline();
+  if (v === 'insights') renderInsights();
+}
+
+function toggleMenu() { /* placeholder */ }
+
+// ── Add Order Sheet ──
+function openAddOrder() {
+  const sheet = document.getElementById('addOrderSheet');
+  if (sheet.classList.contains('open')) { closeAddOrder(); return; }
+  switchView('orders');
+  sheet.classList.add('open');
+  setTimeout(() => sheet.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+function closeAddOrder() {
+  document.getElementById('addOrderSheet').classList.remove('open');
+}
+
+// ── Product rows ──
+function addProductRow(name='', size='') {
+  const div = document.createElement('div');
+  div.className = 'product-input-row';
+  div.innerHTML = `<input type="text" placeholder="Product name" value="${name}" oninput="updateProductTotalHint()">
+    <input type="number" min="1" placeholder="Qty" value="${size}" oninput="updateProductTotalHint()">
+    <button class="btn danger" onclick="this.parentElement.remove();updateProductTotalHint()" style="padding:5px 8px;font-size:12px">✕</button>`;
+  document.getElementById('productRows').appendChild(div);
+  updateProductTotalHint();
+}
+
+function getProductsFrom(containerId) {
+  const rows = document.getElementById(containerId).children;
+  const products = [];
+  for (const row of rows) {
+    const inputs = row.querySelectorAll('input');
+    const name = inputs[0].value.trim();
+    const size = parseInt(inputs[1].value) || 0;
+    if (name) products.push({ name, size, completed: 0 });
+  }
+  return products;
+}
+
+function updateProductTotalHint() {
+  const products = getProductsFrom('productRows');
+  const sum = productSum(products);
+  const orderSize = parseInt(document.getElementById('f-size').value) || 0;
+  const el = document.getElementById('productTotalHint');
+  el.textContent = `${sum} / ${orderSize} units`;
+  el.className = orderSize && sum > orderSize ? 'hint warn' : (orderSize && sum === orderSize ? 'hint ok' : 'hint');
+}
+
+function addOrder() {
+  const name = document.getElementById('f-name').value.trim();
+  const size = parseInt(document.getElementById('f-size').value);
+  const notes = document.getElementById('f-notes').value.trim();
+  if (!name || !size || size < 1) { alert('Please fill in name and a valid order size.'); return; }
+  const products = getProductsFrom('productRows');
+  const sum = productSum(products);
+  if (sum > size) { alert(`Product sizes (${sum}) exceed order total (${size}).`); return; }
+  orders.push({ id: uid(), name, size, completed: 0, products, notes, log: [], sizeLog: [{ date: today(), size, note: 'Initial size' }], createdAt: today() });
+  save();
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-size').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('productRows').innerHTML = '';
+  updateProductTotalHint();
+  closeAddOrder();
+  render();
+}
+
+// ── Render Orders ──
+function render() {
+  const total = orders.length;
+  const active = orders.filter(o => o.completed < o.size).length;
+  const done = total - active;
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total</div>
+      <div class="stat-value total">${total}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active</div>
+      <div class="stat-value active">${active}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Done</div>
+      <div class="stat-value done">${done}</div>
+    </div>`;
+
+  const list = document.getElementById('ordersList');
+  if (!orders.length) {
+    list.innerHTML = `<div class="empty">
+      <div class="empty-icon">📦</div>
+      <p>No orders yet.<br>Tap <strong>+</strong> to add your first order.</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = orders.map(o => {
+    const pct = o.size > 0 ? Math.round(o.completed / o.size * 100) : 0;
+    const isDone = o.completed >= o.size;
+    const remaining = o.size - o.completed;
+
+    let productsHtml = '';
+    if (o.products && o.products.length) {
+      const totalProductSize = productSum(o.products);
+      const unassigned = o.size - totalProductSize;
+      productsHtml = `<div class="products-section">
+        <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase">Products</div>
+        ${o.products.map(p => {
+          const ppct = p.size > 0 ? Math.round((p.completed||0) / p.size * 100) : 0;
+          return `<div class="product-row">
+            <div class="product-row-top">
+              <div class="product-name">${p.name}</div>
+              <div class="product-size">${p.completed||0} / ${p.size}</div>
+            </div>
+            <div class="product-progress-track"><div class="product-progress-fill" style="width:${ppct}%"></div></div>
+            <div class="product-progress-label">${ppct}% done</div>
+          </div>`;
+        }).join('')}
+        <div class="totalbar"><span>Product total</span><span style="font-weight:600">${totalProductSize} / ${o.size}${unassigned > 0 ? ` (${unassigned} unassigned)` : ''}</span></div>
+      </div>`;
+    }
+
+    let sizeHtml = '';
+    if (o.sizeLog && o.sizeLog.length > 1) {
+      sizeHtml = `<div class="log-section">
+        <div class="log-section-title">Size History</div>
+        <div>
+          ${o.sizeLog.map((s, i) => `<div class="size-log-row">
+            <span>${fmtDate(s.date)}</span>
+            ${i === 0 ? `<span class="size-tag">Initial: ${s.size}</span>` : `<span class="size-tag">+${s.added} → ${s.size}</span>`}
+            <span style="flex:1;text-align:right;font-size:11px">${s.note||''}</span>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    let timelineHtml = '';
+    if (o.log && o.log.length) {
+      let running = 0;
+      const rows = o.log.map((l, i) => {
+        running += l.qty;
+        const isLast = i === o.log.length - 1;
+        const breakdownHtml = l.breakdown && l.breakdown.length
+          ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px">${l.breakdown.map(b => `<span style="background:var(--bg);padding:1px 7px;border-radius:99px">${b.name}: +${b.qty}</span>`).join('')}</div>` : '';
+        return `<div class="tl-row ${isLast ? 'tl-last' : ''}">
+          <div class="tl-date">${fmtDate(l.date)}</div>
+          <div class="tl-spine"><div class="tl-dot"></div>${isLast ? '' : '<div class="tl-line"></div>'}</div>
+          <div class="tl-content">
+            <div class="tl-units">+${l.qty} units</div>
+            ${breakdownHtml}
+            ${l.note ? `<div class="tl-note">${l.note}</div>` : ''}
+            <div class="tl-running">${running} / ${o.size} (${Math.round(running/o.size*100)}%)</div>
+          </div>
+        </div>`;
+      }).join('');
+      timelineHtml = `<div class="log-section">
+        <div class="log-section-title">Daily Progress</div>
+        <div id="logs-${o.id}" data-count="${o.log.length}" style="display:block">${rows}</div>
+        <button class="collapse-btn" id="logbtn-${o.id}" onclick="toggleLogs('${o.id}')">▲ Hide log</button>
+      </div>`;
+    }
+
+    return `<div class="order-card">
+      <div class="order-card-header">
+        <div>
+          <div class="order-name">${o.name}</div>
+          <div class="order-meta">Created ${fmtDate(o.createdAt)}${o.notes ? ' · ' + o.notes : ''}</div>
+        </div>
+        <span class="badge ${isDone ? 'done' : 'active'}">${isDone ? 'Done' : 'Active'}</span>
+      </div>
+      <div class="progress-info">
+        <span><strong>${o.completed}</strong> / <strong>${o.size}</strong> units &nbsp;<span style="color:${isDone?'var(--green)':'var(--danger)'}">${isDone ? '✓ all done' : remaining + ' remaining'}</span></span>
+        <span style="font-weight:600">${pct}%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      ${productsHtml}
+      ${sizeHtml}
+      ${timelineHtml}
+      <div class="order-actions">
+        ${!isDone ? `<button class="btn primary" onclick="openLogModal('${o.id}')">Log progress</button>` : ''}
+        <button class="btn" onclick="openIncreaseModal('${o.id}')">Increase size</button>
+        <button class="btn" onclick="openEditProductsModal('${o.id}')">Edit products</button>
+        <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Timeline View ──
+function renderTimeline() {
+  const el = document.getElementById('timelineContent');
+  const allEntries = [];
+  orders.forEach(o => {
+    (o.log || []).forEach(l => allEntries.push({ ...l, orderName: o.name, orderSize: o.size }));
+  });
+  allEntries.sort((a, b) => b.date.localeCompare(a.date));
+  if (!allEntries.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><p>No progress logged yet.</p></div>';
+    return;
+  }
+  el.innerHTML = allEntries.map((l, i) => {
+    const isLast = i === allEntries.length - 1;
+    return `<div class="tl-row ${isLast ? 'tl-last' : ''}">
+      <div class="tl-date">${fmtDate(l.date)}</div>
+      <div class="tl-spine"><div class="tl-dot"></div>${isLast ? '' : '<div class="tl-line"></div>'}</div>
+      <div class="tl-content">
+        <div class="tl-units">${l.orderName} · +${l.qty} units</div>
+        ${l.note ? `<div class="tl-note">${l.note}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Insights View ──
+function renderInsights() {
+  const el = document.getElementById('insightsContent');
+  if (!orders.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>No data yet.</p></div>';
+    return;
+  }
+  const totalUnits = orders.reduce((s, o) => s + o.size, 0);
+  const completedUnits = orders.reduce((s, o) => s + o.completed, 0);
+  const avgPct = totalUnits > 0 ? Math.round(completedUnits / totalUnits * 100) : 0;
+  const logEntries = orders.reduce((s, o) => s + (o.log||[]).length, 0);
+  el.innerHTML = `
+    <div class="insight-card">
+      <h3>Overall Progress</h3>
+      <div class="insight-number">${avgPct}%</div>
+      <div class="insight-sub">${completedUnits} of ${totalUnits} units completed</div>
+    </div>
+    <div class="insight-card">
+      <h3>Progress Entries</h3>
+      <div class="insight-number">${logEntries}</div>
+      <div class="insight-sub">Total daily logs across all orders</div>
+    </div>
+    <div class="insight-card">
+      <h3>Orders</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+        <div>
+          <div style="font-size:28px;font-weight:700;color:var(--gold)">${orders.filter(o=>o.completed<o.size).length}</div>
+          <div style="font-size:13px;color:var(--text-secondary)">In progress</div>
+        </div>
+        <div>
+          <div style="font-size:28px;font-weight:700;color:var(--green)">${orders.filter(o=>o.completed>=o.size).length}</div>
+          <div style="font-size:13px;color:var(--text-secondary)">Completed</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Modals ──
+function onModalBgClick(e) { if (e.target === e.currentTarget) closeModal(); }
+
+function openLogModal(id) {
+  editingId = id;
+  const o = orders.find(x => x.id === id);
+  document.getElementById('modalTitle').textContent = 'Log progress — ' + o.name;
+  const hasProducts = o.products && o.products.length > 0;
+  let body = `<div class="form-group"><label>Date</label><input type="date" id="m-date" value="${today()}"></div>`;
+  if (hasProducts) {
+    body += `<div class="form-group" style="margin-bottom:6px"><label>Units completed today, per product</label></div>`;
+    o.products.forEach((p, i) => {
+      const rem = p.size - p.completed;
+      body += `<div class="log-product-row">
+        <label>${p.name}<span class="rem">${p.completed}/${p.size} done · ${rem} remaining</span></label>
+        <input type="number" min="0" max="${rem}" placeholder="0" id="m-prod-${i}" oninput="updateLogTotalHint('${id}')">
+      </div>`;
+    });
+    body += `<div class="totalbar"><span>Total today</span><span id="logTotalHint" style="font-weight:600">0 units</span></div>`;
+  } else {
+    body += `<div class="form-group"><label>Units completed</label><input type="number" id="m-qty" min="1" placeholder="e.g. 10"></div>`;
+  }
+  body += `<div class="form-group" style="margin-top:14px"><label>Note (optional)</label><input type="text" id="m-note" placeholder="e.g. Finished blue shirts"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn primary" onclick="saveLog('${id}')" style="flex:1">Save log</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('updateModal').classList.add('open');
+}
+
+function updateLogTotalHint(id) {
+  const o = orders.find(x => x.id === id);
+  let total = 0;
+  o.products.forEach((p, i) => { total += parseInt(document.getElementById('m-prod-'+i).value)||0; });
+  const remaining = o.size - o.completed;
+  const hint = document.getElementById('logTotalHint');
+  hint.textContent = `${total} units${total > remaining ? ` (exceeds ${remaining} remaining!)` : ''}`;
+  hint.style.color = total > remaining ? 'var(--danger)' : '';
+}
+
+function saveLog(id) {
+  const date = document.getElementById('m-date').value;
+  const note = document.getElementById('m-note').value.trim();
+  if (!date) { alert('Please select a date.'); return; }
+  const o = orders.find(x => x.id === id);
+  const hasProducts = o.products && o.products.length > 0;
+  if (hasProducts) {
+    const entries = []; let total = 0;
+    for (let i = 0; i < o.products.length; i++) {
+      const qty = parseInt(document.getElementById('m-prod-'+i).value)||0;
+      if (qty < 0) { alert('Quantities cannot be negative.'); return; }
+      const rem = o.products[i].size - o.products[i].completed;
+      if (qty > rem) { alert(`"${o.products[i].name}" only has ${rem} units remaining.`); return; }
+      if (qty > 0) entries.push({ name: o.products[i].name, qty });
+      total += qty;
+    }
+    if (total <= 0) { alert('Enter at least one unit.'); return; }
+    if (total > o.size - o.completed) { alert(`Only ${o.size - o.completed} units remaining.`); return; }
+    for (let i = 0; i < o.products.length; i++) {
+      o.products[i].completed += parseInt(document.getElementById('m-prod-'+i).value)||0;
+    }
+    o.completed += total;
+    o.log.push({ date, qty: total, note, breakdown: entries });
+  } else {
+    const qty = parseInt(document.getElementById('m-qty').value);
+    if (!qty || qty < 1) { alert('Enter a valid quantity.'); return; }
+    const remaining = o.size - o.completed;
+    if (qty > remaining) { alert(`Only ${remaining} units remaining.`); return; }
+    o.log.push({ date, qty, note });
+    o.completed += qty;
+  }
+  save(); closeModal(); render();
+}
+
+function openIncreaseModal(id) {
+  editingId = id;
+  const o = orders.find(x => x.id === id);
+  const hasProducts = o.products && o.products.length > 0;
+  document.getElementById('modalTitle').textContent = 'Increase size — ' + o.name;
+  let productPicker = '';
+  if (hasProducts) {
+    productPicker = `<div class="form-group">
+      <label>Which product?</label>
+      <select id="m-product" onchange="updateIncreaseHint('${id}')">
+        <option value="__order_only__">Order size only</option>
+        ${o.products.map((p,i) => `<option value="${i}">${p.name} (${p.size} units)</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  document.getElementById('modalBody').innerHTML = `
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Current size: <strong>${o.size} units</strong> · Completed: <strong>${o.completed}</strong></p>
+    ${productPicker}
+    <div class="form-group"><label>Units to add</label><input type="number" id="m-add" min="1" placeholder="e.g. 20" oninput="updateIncreaseHint('${id}')"></div>
+    <div id="increaseHint" class="hint" style="margin-bottom:14px"></div>
+    <div class="form-group"><label>Reason (optional)</label><input type="text" id="m-reason" placeholder="e.g. Customer added items"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn primary" onclick="saveIncrease('${id}')" style="flex:1">Increase size</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.getElementById('updateModal').classList.add('open');
+  updateIncreaseHint(id);
+}
+
+function updateIncreaseHint(id) {
+  const o = orders.find(x => x.id === id);
+  const add = parseInt(document.getElementById('m-add').value)||0;
+  const hint = document.getElementById('increaseHint');
+  const ps = document.getElementById('m-product');
+  if (ps && ps.value !== '__order_only__') {
+    const p = o.products[parseInt(ps.value)];
+    hint.textContent = add ? `"${p.name}" → ${p.size+add} units. Order → ${o.size+add} units.` : '';
+    hint.className = 'hint ok';
+  } else {
+    hint.textContent = add ? `Order size will become ${o.size+add} units.` : '';
+    hint.className = 'hint';
+  }
+}
+
+function saveIncrease(id) {
+  const add = parseInt(document.getElementById('m-add').value);
+  const reason = document.getElementById('m-reason').value.trim();
+  if (!add || add < 1) { alert('Enter a valid number.'); return; }
+  const o = orders.find(x => x.id === id);
+  const ps = document.getElementById('m-product');
+  let noteText = reason;
+  if (ps && ps.value !== '__order_only__') {
+    const idx = parseInt(ps.value);
+    o.products[idx].size += add;
+    noteText = (reason ? reason + ' — ' : '') + `${o.products[idx].name} +${add}`;
+  } else {
+    noteText = reason || 'Size increased';
+  }
+  o.size += add;
+  if (!o.sizeLog) o.sizeLog = [];
+  o.sizeLog.push({ date: today(), size: o.size, added: add, note: noteText });
+  save(); closeModal(); render();
+}
+
+function openEditProductsModal(id) {
+  editingId = id;
+  const o = orders.find(x => x.id === id);
+  document.getElementById('modalTitle').textContent = 'Edit products — ' + o.name;
+  let rowsHtml = '<div id="eProductRows">';
+  (o.products || []).forEach(p => {
+    rowsHtml += `<div class="product-input-row" data-completed="${p.completed||0}">
+      <input type="text" value="${p.name}" oninput="updateEditTotalHint(${o.size})">
+      <input type="number" min="1" value="${p.size}" oninput="updateEditTotalHint(${o.size})">
+      <button class="btn danger" onclick="this.parentElement.remove();updateEditTotalHint(${o.size})" style="padding:5px 8px;font-size:12px">✕</button>
+    </div>`;
+  });
+  rowsHtml += '</div>';
+  document.getElementById('modalBody').innerHTML = `
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Order size: <strong>${o.size} units</strong>. Removing a product removes its progress.</p>
+    ${rowsHtml}
+    <button class="btn" style="margin-bottom:4px" onclick="addEProductRow(${o.size})">+ Add product</button>
+    <div class="totalbar"><span>Product total</span><span id="editTotalHint">${productSum(o.products)} / ${o.size} units</span></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn primary" onclick="saveProducts('${id}')" style="flex:1">Save</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.getElementById('updateModal').classList.add('open');
+  updateEditTotalHint(o.size);
+}
+
+function addEProductRow(orderSize) {
+  const div = document.createElement('div');
+  div.className = 'product-input-row';
+  div.dataset.completed = '0';
+  div.innerHTML = `<input type="text" placeholder="Product name" oninput="updateEditTotalHint(${orderSize})">
+    <input type="number" min="1" placeholder="Qty" oninput="updateEditTotalHint(${orderSize})">
+    <button class="btn danger" onclick="this.parentElement.remove();updateEditTotalHint(${orderSize})" style="padding:5px 8px;font-size:12px">✕</button>`;
+  document.getElementById('eProductRows').appendChild(div);
+  updateEditTotalHint(orderSize);
+}
+
+function updateEditTotalHint(orderSize) {
+  const rows = document.getElementById('eProductRows').children;
+  let sum = 0;
+  for (const row of rows) { sum += parseInt(row.querySelectorAll('input')[1].value)||0; }
+  const el = document.getElementById('editTotalHint');
+  el.textContent = `${sum} / ${orderSize} units`;
+  el.className = sum > orderSize ? 'hint warn' : 'hint ok';
+}
+
+function saveProducts(id) {
+  const o = orders.find(x => x.id === id);
+  const rows = document.getElementById('eProductRows').children;
+  const products = [];
+  for (const row of rows) {
+    const inputs = row.querySelectorAll('input');
+    const name = inputs[0].value.trim();
+    const size = parseInt(inputs[1].value)||0;
+    const completed = parseInt(row.dataset.completed)||0;
+    if (name) products.push({ name, size, completed: Math.min(completed, size) });
+  }
+  const sum = productSum(products);
+  if (sum > o.size) { alert(`Product sizes (${sum}) exceed order total (${o.size}).`); return; }
+  o.products = products;
+  save(); closeModal(); render();
+}
+
+function deleteOrder(id) {
+  if (!confirm('Delete this order?')) return;
+  orders = orders.filter(x => x.id !== id);
+  save(); render();
+}
+
+function toggleLogs(id) {
+  const el = document.getElementById('logs-'+id);
+  const btn = document.getElementById('logbtn-'+id);
+  if (el.style.display === 'none') {
+    el.style.display = 'block'; btn.innerHTML = '▲ Hide log';
+  } else {
+    el.style.display = 'none'; btn.innerHTML = `▼ Show log (${el.dataset.count} entries)`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('updateModal').classList.remove('open');
+}
+
+load();
+</script>
+</body>
+</html>
