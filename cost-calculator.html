@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Cost Calculator — Ledger</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Ledger<span>.</span></div>
+  <div class="user">
+    <span id="userEmail">—</span>
+    <button id="signOutBtn">Sign out</button>
+  </div>
+</div>
+
+<div class="tool-shell">
+  <div class="tool-head">
+    <a href="home.html" class="back">← Dashboard</a>
+  </div>
+  <h1>Product Cost Calculator</h1>
+  <p class="tool-sub">Work out unit cost, margin, and sell price for a product run.</p>
+
+  <div class="panel">
+    <h3>Inputs</h3>
+    <div class="field-row">
+      <label for="productName">Product name</label>
+      <input type="text" id="productName" placeholder="e.g. Ceramic mug — 350ml">
+    </div>
+    <div class="grid-2">
+      <div class="field-row">
+        <label for="materialCost">Material cost (₹)</label>
+        <input type="number" id="materialCost" min="0" step="0.01" value="0">
+      </div>
+      <div class="field-row">
+        <label for="laborCost">Labor cost (₹)</label>
+        <input type="number" id="laborCost" min="0" step="0.01" value="0">
+      </div>
+      <div class="field-row">
+        <label for="overheadCost">Overhead / packaging (₹)</label>
+        <input type="number" id="overheadCost" min="0" step="0.01" value="0">
+      </div>
+      <div class="field-row">
+        <label for="quantity">Quantity made</label>
+        <input type="number" id="quantity" min="1" step="1" value="1">
+      </div>
+      <div class="field-row">
+        <label for="marginPct">Target margin (%)</label>
+        <input type="number" id="marginPct" min="0" step="1" value="30">
+      </div>
+    </div>
+
+    <div class="result-strip">
+      <div>
+        <div class="label">Unit cost</div>
+        <div class="value" id="unitCostOut">₹0.00</div>
+      </div>
+      <div>
+        <div class="label">Sell price / unit</div>
+        <div class="value rust" id="sellPriceOut">₹0.00</div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="saveBtn" style="width:auto;padding:11px 22px;">Save calculation</button>
+      <button class="btn-secondary" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Saved calculations</h3>
+    <div id="historyWrap"><div class="empty-state">Loading…</div></div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    auth, db, requireAuth, signOut,
+    collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp
+  } from "./js/firebase-config.js";
+
+  let uid = null;
+
+  requireAuth((user) => {
+    uid = user.uid;
+    document.getElementById("userEmail").textContent = user.email;
+    loadHistory();
+  });
+
+  document.getElementById("signOutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "index.html";
+  });
+
+  const ids = ["materialCost","laborCost","overheadCost","quantity","marginPct"];
+  ids.forEach(id => document.getElementById(id).addEventListener("input", recalc));
+  recalc();
+
+  function recalc() {
+    const material = num("materialCost");
+    const labor = num("laborCost");
+    const overhead = num("overheadCost");
+    const qty = Math.max(1, num("quantity") || 1);
+    const margin = num("marginPct");
+
+    const totalCost = material + labor + overhead;
+    const unitCost = totalCost / qty;
+    const sellPrice = unitCost / (1 - (margin / 100));
+
+    document.getElementById("unitCostOut").textContent = `₹${unitCost.toFixed(2)}`;
+    document.getElementById("sellPriceOut").textContent = isFinite(sellPrice) ? `₹${sellPrice.toFixed(2)}` : "—";
+    return { unitCost, sellPrice, totalCost, qty, margin };
+  }
+
+  function num(id) {
+    return parseFloat(document.getElementById(id).value) || 0;
+  }
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    document.getElementById("productName").value = "";
+    ["materialCost","laborCost","overheadCost"].forEach(id => document.getElementById(id).value = 0);
+    document.getElementById("quantity").value = 1;
+    document.getElementById("marginPct").value = 30;
+    recalc();
+  });
+
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("saveBtn");
+    const productName = document.getElementById("productName").value.trim() || "Untitled product";
+    const { unitCost, sellPrice, totalCost, qty, margin } = recalc();
+
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    try {
+      await addDoc(collection(db, "cost_calculations"), {
+        uid,
+        productName,
+        materialCost: num("materialCost"),
+        laborCost: num("laborCost"),
+        overheadCost: num("overheadCost"),
+        quantity: qty,
+        marginPct: margin,
+        totalCost,
+        unitCost,
+        sellPrice,
+        createdAt: serverTimestamp(),
+      });
+      btn.textContent = "Saved ✓";
+      await loadHistory();
+      setTimeout(() => { btn.textContent = "Save calculation"; btn.disabled = false; }, 1200);
+    } catch (err) {
+      console.error(err);
+      btn.textContent = "Save calculation";
+      btn.disabled = false;
+      alert("Couldn't save: " + err.message);
+    }
+  });
+
+  async function loadHistory() {
+    const wrap = document.getElementById("historyWrap");
+    try {
+      const snap = await getDocs(query(
+        collection(db, "cost_calculations"),
+        where("uid", "==", uid),
+        orderBy("createdAt", "desc"),
+        limit(20)
+      ));
+      if (snap.empty) {
+        wrap.innerHTML = `<div class="empty-state">No calculations saved yet. Fill in the form above and save your first one.</div>`;
+        return;
+      }
+      const rows = [];
+      snap.forEach(d => {
+        const v = d.data();
+        const date = v.createdAt?.toDate?.() ? v.createdAt.toDate().toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"}) : "—";
+        rows.push(`
+          <tr>
+            <td class="mono">${date}</td>
+            <td>${escapeHtml(v.productName)}</td>
+            <td class="mono amt">${v.quantity}</td>
+            <td class="mono amt">₹${Number(v.unitCost).toFixed(2)}</td>
+            <td class="mono amt">₹${Number(v.sellPrice).toFixed(2)}</td>
+          </tr>
+        `);
+      });
+      wrap.innerHTML = `
+        <table class="history">
+          <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Unit cost</th><th>Sell price</th></tr></thead>
+          <tbody>${rows.join("")}</tbody>
+        </table>
+      `;
+    } catch (err) {
+      console.error(err);
+      wrap.innerHTML = `<div class="empty-state">Couldn't load history (${err.message}).</div>`;
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+</script>
+
+</body>
+</html>

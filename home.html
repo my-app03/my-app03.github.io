@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Ledger</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Ledger<span>.</span></div>
+  <div class="user">
+    <span id="userEmail">—</span>
+    <button id="signOutBtn">Sign out</button>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="shell-head">
+    <div class="eyebrow">Choose a tool</div>
+    <h1>Welcome back</h1>
+  </div>
+
+  <div class="app-grid">
+    <a class="app-row" href="cost-calculator.html">
+      <div class="idx">01 / TOOL</div>
+      <h2>Product Cost Calculator</h2>
+      <p>Work out unit cost, margin, and sell price for a product run.</p>
+      <div class="go">Open tool →</div>
+    </a>
+    <a class="app-row" href="order-tracker.html">
+      <div class="idx">02 / TOOL</div>
+      <h2>Order Tracker</h2>
+      <p>Log orders and follow each one from placed to delivered.</p>
+      <div class="go">Open tool →</div>
+    </a>
+  </div>
+
+  <div class="ledger">
+    <div class="ledger-head">
+      <h3>Recent activity</h3>
+      <div class="eyebrow">Last 10 entries, both tools</div>
+    </div>
+    <div class="ledger-row head">
+      <div>Date</div><div>Tool</div><div>Detail</div><div>Amount</div><div></div>
+    </div>
+    <div id="ledgerBody"></div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    auth, db, requireAuth, signOut,
+    collection, query, where, orderBy, limit, getDocs
+  } from "./js/firebase-config.js";
+
+  let currentUser = null;
+
+  requireAuth(async (user) => {
+    currentUser = user;
+    document.getElementById("userEmail").textContent = user.email;
+    await loadActivity(user.uid);
+  });
+
+  document.getElementById("signOutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "index.html";
+  });
+
+  async function loadActivity(uid) {
+    const body = document.getElementById("ledgerBody");
+    try {
+      const [calcSnap, orderSnap] = await Promise.all([
+        getDocs(query(collection(db, "cost_calculations"), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(10))),
+        getDocs(query(collection(db, "orders"), where("uid", "==", uid), orderBy("createdAt", "desc"), limit(10))),
+      ]);
+
+      const rows = [];
+      calcSnap.forEach(d => {
+        const v = d.data();
+        rows.push({
+          date: v.createdAt?.toDate?.() || new Date(),
+          tool: "calc",
+          detail: v.productName || "Cost calculation",
+          amount: v.sellPrice != null ? `₹${Number(v.sellPrice).toFixed(2)}` : "—",
+        });
+      });
+      orderSnap.forEach(d => {
+        const v = d.data();
+        rows.push({
+          date: v.createdAt?.toDate?.() || new Date(),
+          tool: "order",
+          detail: v.customerName ? `${v.customerName} — ${v.item || "order"}` : (v.item || "Order"),
+          amount: v.amount != null ? `₹${Number(v.amount).toFixed(2)}` : "—",
+          status: v.status,
+        });
+      });
+
+      rows.sort((a, b) => b.date - a.date);
+      const top = rows.slice(0, 10);
+
+      if (top.length === 0) {
+        body.innerHTML = `<div class="ledger-empty">No activity yet. Open a tool above and your saved work will show up here.</div>`;
+        return;
+      }
+
+      body.innerHTML = top.map(r => `
+        <div class="ledger-row">
+          <div class="mono">${formatDate(r.date)}</div>
+          <div><span class="tag ${r.tool}">${r.tool === "calc" ? "CALCULATOR" : "ORDER"}</span></div>
+          <div>${escapeHtml(r.detail)}</div>
+          <div class="amt">${r.amount}</div>
+          <div>${r.status ? `<span class="status-pill status-${r.status}">${r.status}</span>` : ""}</div>
+        </div>
+      `).join("");
+    } catch (err) {
+      console.error(err);
+      body.innerHTML = `<div class="ledger-empty">Couldn't load activity (${err.message}).</div>`;
+    }
+  }
+
+  function formatDate(d) {
+    return d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+</script>
+
+</body>
+</html>

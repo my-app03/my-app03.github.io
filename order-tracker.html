@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Tracker — Ledger</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Ledger<span>.</span></div>
+  <div class="user">
+    <span id="userEmail">—</span>
+    <button id="signOutBtn">Sign out</button>
+  </div>
+</div>
+
+<div class="tool-shell">
+  <div class="tool-head">
+    <a href="home.html" class="back">← Dashboard</a>
+  </div>
+  <h1>Order Tracker</h1>
+  <p class="tool-sub">Log orders and follow each one from placed to delivered.</p>
+
+  <div class="panel">
+    <h3>New order</h3>
+    <div class="grid-2">
+      <div class="field-row">
+        <label for="customerName">Customer name</label>
+        <input type="text" id="customerName" placeholder="e.g. Priya Shah">
+      </div>
+      <div class="field-row">
+        <label for="item">Item</label>
+        <input type="text" id="item" placeholder="e.g. Ceramic mug ×2">
+      </div>
+      <div class="field-row">
+        <label for="amount">Amount (₹)</label>
+        <input type="number" id="amount" min="0" step="0.01" value="0">
+      </div>
+      <div class="field-row">
+        <label for="status">Status</label>
+        <select id="status">
+          <option value="pending">Pending</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="saveBtn" style="width:auto;padding:11px 22px;">Log order</button>
+      <button class="btn-secondary" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Order history</h3>
+    <div id="historyWrap"><div class="empty-state">Loading…</div></div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    auth, db, requireAuth, signOut,
+    collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp
+  } from "./js/firebase-config.js";
+
+  let uid = null;
+
+  requireAuth((user) => {
+    uid = user.uid;
+    document.getElementById("userEmail").textContent = user.email;
+    loadHistory();
+  });
+
+  document.getElementById("signOutBtn").addEventListener("click", async () => {
+    await signOut(auth);
+    window.location.href = "index.html";
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    document.getElementById("customerName").value = "";
+    document.getElementById("item").value = "";
+    document.getElementById("amount").value = 0;
+    document.getElementById("status").value = "pending";
+  });
+
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("saveBtn");
+    const customerName = document.getElementById("customerName").value.trim();
+    const item = document.getElementById("item").value.trim();
+    const amount = parseFloat(document.getElementById("amount").value) || 0;
+    const status = document.getElementById("status").value;
+
+    if (!customerName || !item) {
+      alert("Add a customer name and item before logging the order.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    try {
+      await addDoc(collection(db, "orders"), {
+        uid, customerName, item, amount, status,
+        createdAt: serverTimestamp(),
+      });
+      btn.textContent = "Logged ✓";
+      document.getElementById("resetBtn").click();
+      await loadHistory();
+      setTimeout(() => { btn.textContent = "Log order"; btn.disabled = false; }, 1200);
+    } catch (err) {
+      console.error(err);
+      btn.textContent = "Log order";
+      btn.disabled = false;
+      alert("Couldn't save: " + err.message);
+    }
+  });
+
+  async function loadHistory() {
+    const wrap = document.getElementById("historyWrap");
+    try {
+      const snap = await getDocs(query(
+        collection(db, "orders"),
+        where("uid", "==", uid),
+        orderBy("createdAt", "desc"),
+        limit(30)
+      ));
+      if (snap.empty) {
+        wrap.innerHTML = `<div class="empty-state">No orders logged yet. Add one above to start tracking.</div>`;
+        return;
+      }
+      const rows = [];
+      snap.forEach(d => {
+        const v = d.data();
+        const date = v.createdAt?.toDate?.() ? v.createdAt.toDate().toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"}) : "—";
+        rows.push(`
+          <tr>
+            <td class="mono">${date}</td>
+            <td>${escapeHtml(v.customerName)}</td>
+            <td>${escapeHtml(v.item)}</td>
+            <td class="mono amt">₹${Number(v.amount).toFixed(2)}</td>
+            <td><span class="status-pill status-${v.status}">${v.status}</span></td>
+          </tr>
+        `);
+      });
+      wrap.innerHTML = `
+        <table class="history">
+          <thead><tr><th>Date</th><th>Customer</th><th>Item</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>${rows.join("")}</tbody>
+        </table>
+      `;
+    } catch (err) {
+      console.error(err);
+      wrap.innerHTML = `<div class="empty-state">Couldn't load history (${err.message}).</div>`;
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+</script>
+
+</body>
+</html>
