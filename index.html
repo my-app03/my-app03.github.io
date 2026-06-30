@@ -1,113 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign in — Ledger</title>
-<link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
 </head>
 <body>
+    <h1>Welcome</h1>
 
-<div class="auth-wrap">
-  <div class="auth-card">
-    <div class="auth-eyebrow">Workspace access</div>
-    <h1 id="formTitle">Sign in</h1>
-    <p class="auth-sub" id="formSub">Use your account to reach your tools.</p>
+<a href="order_management_tracker_v2.html">
+    Open App 1
+</a>
 
-    <div class="auth-error" id="authError"></div>
-
-    <form id="authForm">
-      <div class="field">
-        <label for="email">Email</label>
-        <input type="email" id="email" required autocomplete="email">
-      </div>
-      <div class="field">
-        <label for="password">Password</label>
-        <input type="password" id="password" required autocomplete="current-password" minlength="6">
-      </div>
-      <button type="submit" class="btn-primary" id="submitBtn">Sign in</button>
-    </form>
-
-    <div class="auth-toggle">
-      <span id="toggleText">No account yet?</span>
-      <button type="button" id="toggleMode">Create one</button>
-    </div>
-  </div>
-</div>
-
-<script type="module">
-  import {
-    auth, onAuthStateChanged, signInWithEmailAndPassword,
-    createUserWithEmailAndPassword
-  } from "./js/firebase-config.js";
-
-  let mode = "signin";
-  const form = document.getElementById("authForm");
-  const errorBox = document.getElementById("authError");
-  const submitBtn = document.getElementById("submitBtn");
-  const toggleBtn = document.getElementById("toggleMode");
-  const toggleText = document.getElementById("toggleText");
-  const formTitle = document.getElementById("formTitle");
-  const formSub = document.getElementById("formSub");
-
-  // Already signed in? Skip straight to the dashboard.
-  onAuthStateChanged(auth, (user) => {
-    if (user) window.location.href = "home.html";
-  });
-
-  toggleBtn.addEventListener("click", () => {
-    mode = mode === "signin" ? "signup" : "signin";
-    if (mode === "signup") {
-      formTitle.textContent = "Create account";
-      formSub.textContent = "Set up access to your tools.";
-      submitBtn.textContent = "Create account";
-      toggleText.textContent = "Already have an account?";
-      toggleBtn.textContent = "Sign in";
-    } else {
-      formTitle.textContent = "Sign in";
-      formSub.textContent = "Use your account to reach your tools.";
-      submitBtn.textContent = "Sign in";
-      toggleText.textContent = "No account yet?";
-      toggleBtn.textContent = "Create one";
-    }
-    errorBox.style.display = "none";
-  });
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    errorBox.style.display = "none";
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    submitBtn.disabled = true;
-    submitBtn.textContent = mode === "signin" ? "Signing in…" : "Creating…";
-
-    try {
-      if (mode === "signin") {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
-      window.location.href = "home.html";
-    } catch (err) {
-      errorBox.textContent = friendlyError(err.code);
-      errorBox.style.display = "block";
-      submitBtn.disabled = false;
-      submitBtn.textContent = mode === "signin" ? "Sign in" : "Create account";
-    }
-  });
-
-  function friendlyError(code) {
-    const map = {
-      "auth/invalid-email": "That email address doesn't look right.",
-      "auth/user-not-found": "No account found with that email.",
-      "auth/wrong-password": "Incorrect password. Try again.",
-      "auth/invalid-credential": "Email or password is incorrect.",
-      "auth/email-already-in-use": "An account already exists for that email.",
-      "auth/weak-password": "Password must be at least 6 characters.",
-    };
-    return map[code] || "Something went wrong. Please try again.";
-  }
-</script>
-
+<a href="product_cost_calculator.html">
+    Open App 2
+</a>
 </body>
 </html>
